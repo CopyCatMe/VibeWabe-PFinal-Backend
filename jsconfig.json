@@ -1,7 +1,8 @@
 {
   "compilerOptions": {
+    "baseUrl": "./src",  // Aquí definimos que la base URL es la carpeta src
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["*"]  // Esto permite que @ apunte a todo dentro de src
     }
   }
 }
