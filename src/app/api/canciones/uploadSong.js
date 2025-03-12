@@ -1,7 +1,7 @@
 // pages/api/uploadSong.js
 import nextConnect from 'next-connect';
 import multer from 'multer';
-import cloudinary from 'cloudinary';
+import cloudinary from './cloudinary';
 
 // Configura Cloudinary
 cloudinary.config({
