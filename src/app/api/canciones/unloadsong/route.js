@@ -1,4 +1,4 @@
-import { revalidatePath } from 'next/cache';
+import { NextResponse } from 'next/server';
 import cloudinary from 'cloudinary';
 
 // Configura Cloudinary
@@ -8,16 +8,23 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-export async function uploadMedia(prevState, formData) {
-  const imageFile = formData.get('image'); // Archivo de imagen
-  const videoFile = formData.get('video'); // Archivo de video
-
-  // Validar que se hayan subido ambos archivos
-  if (!imageFile || !videoFile) {
-    return { error: 'Both image and video files are required' };
-  }
-
+export async function POST(request) {
   try {
+    // Obtener los datos del formulario
+    const formData = await request.formData();
+
+    // Extraer los campos del formulario
+    const imageFile = formData.get('image');
+    const videoFile = formData.get('video');
+
+    // Validar que los archivos se hayan subido
+    if (!imageFile || !videoFile) {
+      return NextResponse.json(
+        { error: 'Both image and video files are required' },
+        { status: 400 }
+      );
+    }
+
     // Subir la imagen a Cloudinary
     const imageBuffer = await imageFile.arrayBuffer();
     const imageBase64 = Buffer.from(imageBuffer).toString('base64');
@@ -40,16 +47,16 @@ export async function uploadMedia(prevState, formData) {
       public_id: `video_${Date.now()}`, // Nombre único para el video
     });
 
-    // Revalidar la ruta si es necesario
-    revalidatePath('/');
-
     // Devolver los resultados
-    return {
+    return NextResponse.json({
       success: 'Archivos subidos correctamente',
       imageUrl: imageResult.secure_url,
       videoUrl: videoResult.secure_url,
-    };
+    });
   } catch (error) {
-    return { error: error.message };
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500 }
+    );
   }
 }
