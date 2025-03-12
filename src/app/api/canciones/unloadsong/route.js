@@ -1,7 +1,7 @@
-// pages/api/uploadSong.js
-import nextConnect from 'next-connect';
+// app/api/canciones/uploadSong/route.js
+import { NextResponse } from 'next/server';
 import multer from 'multer';
-import cloudinary from './cloudinary';
+import cloudinary from 'cloudinary';
 
 // Configura Cloudinary
 cloudinary.config({
@@ -10,26 +10,30 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+// Configura Multer para manejar la subida de archivos
 const upload = multer({ storage: multer.memoryStorage() });
 
-const uploadSong = nextConnect({
-  onError(error, req, res) {
-    res.status(501).json({ error: `Sorry, something went wrong! ${error.message}` });
-  },
-  onNoMatch(req, res) {
-    res.status(405).json({ error: `Method '${req.method}' Not Allowed` });
-  },
-});
+// Middleware para procesar multipart/form-data
+const multerMiddleware = upload.fields([{ name: 'song' }, { name: 'image' }]);
 
-uploadSong.use(upload.fields([{ name: 'song' }, { name: 'image' }]));
-
-uploadSong.post(async (req, res) => {
+export async function POST(request) {
   try {
+    // Parsear el cuerpo de la solicitud usando Multer
+    const req = await new Promise((resolve, reject) => {
+      multerMiddleware(request, {}, (error) => {
+        if (error) reject(error);
+        else resolve(request);
+      });
+    });
+
     const { title } = req.body;
 
     // Validar que los archivos se hayan subido
     if (!req.files || !req.files['song'] || !req.files['image']) {
-      return res.status(400).json({ error: 'Both song and image files are required' });
+      return NextResponse.json(
+        { error: 'Both song and image files are required' },
+        { status: 400 }
+      );
     }
 
     const songFile = req.files['song'][0];
@@ -60,17 +64,18 @@ uploadSong.post(async (req, res) => {
     });
 
     // Responder con los URLs de los archivos subidos
-    res.status(200).json({
+    return NextResponse.json({
       title,
       songUrl: songResult.secure_url,
       imageUrl: imageResult.secure_url,
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500 }
+    );
   }
-});
-
-export default uploadSong;
+}
 
 export const config = {
   api: {
