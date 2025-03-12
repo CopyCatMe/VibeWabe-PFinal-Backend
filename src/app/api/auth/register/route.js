@@ -51,15 +51,13 @@ export async function POST(request) {
         await collection.insertOne(newUser);
 
         const usuario = await collection.findOne({ email: email.toLowerCase() });
-        const loginToken = { id_usuario: usuario._id };
         const userData = { name: usuario.name, avatar_url: usuario.avatar_url };
-        const encryptedLoginToken = loginToken;
 
         return new Response(
             JSON.stringify({
                 message: "Autenticación exitosa",
                 body: {
-                    loginToken: JSON.stringify(encryptedLoginToken),
+                    loginToken: usuario._id,
                     userData: JSON.stringify(userData),
                 },
             }),

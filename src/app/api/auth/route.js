@@ -28,9 +28,10 @@ export async function POST(request) {
 
         // Obtener los datos cifrados desde la solicitud
         const body = await request.json();
-
+        
         // Decodificar los datos
         let { idUser } = body;
+        console.log(idUser)
 
         // Conectar a la base de datos
         const { database } = await connectToDatabase();
@@ -40,6 +41,7 @@ export async function POST(request) {
         const usuario = await collection.findOne({ _id: new ObjectId(idUser) });
 
         if (!usuario) {
+            console.log(usuario, "error del usuario")
             return new Response(
                 JSON.stringify({ message: "El usuario no existe" }),
                 { status: 406, headers: { "Content-Type": "application/json" } }

@@ -31,7 +31,7 @@ export async function POST(request) {
         if (!usuario) {
             return new Response(
                 JSON.stringify({ message: "El email no existe" }),
-                { status: 401, headers: { "Content-Type": "application/json" } }
+                { status: 404, headers: { "Content-Type": "application/json" } }
             );
         }
 
@@ -43,14 +43,9 @@ export async function POST(request) {
         if (!passwordMatch) {
             return new Response(
                 JSON.stringify({ message: "La contraseña es incorrecta" }),
-                { status: 401, headers: { "Content-Type": "application/json" } }
+                { status: 405, headers: { "Content-Type": "application/json" } }
             );
         }
-
-        // Crear el token de inicio de sesión (usando el ID del usuario)
-        const loginToken = {
-            id_usuario: usuario._id,
-        };
 
         // Preparar los datos del usuario para la respuesta
         const userData = {
@@ -59,14 +54,13 @@ export async function POST(request) {
         };
 
         // Encriptar el token de inicio de sesión para enviarlo de forma segura
-        const encryptedLoginToken = loginToken;
 
         // Responder con el token de inicio de sesión y los datos del usuario
         return new Response(
             JSON.stringify({
                 message: "Autenticación exitosa",
                 body: {
-                    loginToken: JSON.stringify(encryptedLoginToken),
+                    loginToken: usuario._id,
                     userData: JSON.stringify(userData),
                 },
             }),
