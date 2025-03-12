@@ -29,14 +29,15 @@ export async function POST(request) {
         const collection = database.collection(process.env.MONGODB_COLLECTION_SONGS);
 
         // Obtener los datos cifrados desde la solicitud
-        const body = await request.json();
+        let body = await request.json();
+        console.log(body)
 
         // Destructuracion de body
         const { audioUrl, imageUrl, songName, userName } = body;
 
         const newSong = {
             audioUrl: audioUrl,
-            imageUrl: imageUrl, 
+            imageUrl: imageUrl,
             songName: songName,
             userName: userName,
             created_at: new Date().toISOString(),
@@ -56,4 +57,38 @@ export async function POST(request) {
         );
     }
 }
+
+
+export async function GET(request, { params }) {
+    const apiKeyHeader = request.headers.get("x-api-key");
+    if (apiKeyHeader !== process.env.CLIENT_API_KEY) {
+        return Response.json(
+            { message: "No tienes permiso para acceder a este recurso" },
+            { status: 401 }
+        );
+    };
+
+
+    const buscador = request.nextUrl.searchParams.get("buscador");
+    let songs = [];
+
+    const { database } = await connectToDatabase();
+    const collection = database.collection(process.env.MONGODB_COLLECTION_SONGS);    
+
+    if (!buscador || buscador.trim() === "") { // Verificamos si es vacío o espacios en blanco
+        songs = await collection.find().sort({ created_at: -1 }).toArray();
+    } else {
+        songs = await collection.find({
+            $or: [
+                { songName: { $regex: new RegExp(buscador, "i") } }, 
+                { userName: { $regex: new RegExp(buscador, "i") } }
+            ]
+        }).sort({ created_at: -1 }).toArray();
+    }
+
+    console.log(songs)
+    
+    return Response.json(songs);
+}
+
 
