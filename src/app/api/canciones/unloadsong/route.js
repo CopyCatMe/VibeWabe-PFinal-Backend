@@ -1,6 +1,6 @@
 // app/api/canciones/uploadSong/route.js
 import { NextResponse } from 'next/server';
-import cloudinary from './cloudinary';
+import cloudinary from 'cloudinary';
 
 // Configura Cloudinary
 cloudinary.config({
