@@ -42,7 +42,7 @@ export async function POST(request) {
         if (!usuario) {
             return new Response(
                 JSON.stringify({ message: "El usuario no existe" }),
-                { status: 401, headers: { "Content-Type": "application/json" } }
+                { status: 406, headers: { "Content-Type": "application/json" } }
             );
         }
 
