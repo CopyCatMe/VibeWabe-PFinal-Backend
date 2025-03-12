@@ -1,6 +1,5 @@
-// app/api/canciones/uploadSong/route.js
-import { NextResponse } from 'next/server';
-import cloudinary from '../cloudinary';
+import { revalidatePath } from 'next/cache';
+import cloudinary from 'cloudinary';
 
 // Configura Cloudinary
 cloudinary.config({
@@ -9,60 +8,48 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-export async function POST(request) {
+export async function uploadMedia(prevState, formData) {
+  const imageFile = formData.get('image'); // Archivo de imagen
+  const videoFile = formData.get('video'); // Archivo de video
+
+  // Validar que se hayan subido ambos archivos
+  if (!imageFile || !videoFile) {
+    return { error: 'Both image and video files are required' };
+  }
+
   try {
-    // Obtener los datos del formulario
-    const formData = await request.formData();
-
-    // Extraer los campos del formulario
-    const title = formData.get('title');
-    const imageFile = formData.get('image');
-    const songFile = formData.get('song');
-
-    // Validar que los archivos se hayan subido
-    if (!songFile || !imageFile) {
-      return NextResponse.json(
-        { error: 'Both song and image files are required' },
-        { status: 400 }
-      );
-    }
-
-    // Convertir los archivos a buffers
-    const imageBuffer = await imageFile.arrayBuffer();
-    const songBuffer = await songFile.arrayBuffer();
-
     // Subir la imagen a Cloudinary
-    const imageResult = await new Promise((resolve, reject) => {
-      cloudinary.uploader.upload_stream(
-        { resource_type: 'image' },
-        (error, result) => {
-          if (error) reject(error);
-          else resolve(result);
-        }
-      ).end(Buffer.from(imageBuffer));
+    const imageBuffer = await imageFile.arrayBuffer();
+    const imageBase64 = Buffer.from(imageBuffer).toString('base64');
+    const imageUri = `data:${imageFile.type};base64,${imageBase64}`;
+
+    const imageResult = await cloudinary.uploader.upload(imageUri, {
+      resource_type: 'image', // Tipo de recurso: imagen
+      folder: 'vibewabe', // Carpeta en Cloudinary
+      public_id: `image_${Date.now()}`, // Nombre único para la imagen
     });
 
-    // Subir la canción a Cloudinary
-    const songResult = await new Promise((resolve, reject) => {
-      cloudinary.uploader.upload_stream(
-        { resource_type: 'video' },
-        (error, result) => {
-          if (error) reject(error);
-          else resolve(result);
-        }
-      ).end(Buffer.from(songBuffer));
+    // Subir el video a Cloudinary
+    const videoBuffer = await videoFile.arrayBuffer();
+    const videoBase64 = Buffer.from(videoBuffer).toString('base64');
+    const videoUri = `data:${videoFile.type};base64,${videoBase64}`;
+
+    const videoResult = await cloudinary.uploader.upload(videoUri, {
+      resource_type: 'video', // Tipo de recurso: video
+      folder: 'vibewabe', // Carpeta en Cloudinary
+      public_id: `video_${Date.now()}`, // Nombre único para el video
     });
 
-    // Responder con los URLs de los archivos subidos
-    return NextResponse.json({
-      title,
-      songUrl: songResult.secure_url,
+    // Revalidar la ruta si es necesario
+    revalidatePath('/');
+
+    // Devolver los resultados
+    return {
+      success: 'Archivos subidos correctamente',
       imageUrl: imageResult.secure_url,
-    });
+      videoUrl: videoResult.secure_url,
+    };
   } catch (error) {
-    return NextResponse.json(
-      { error: error.message },
-      { status: 500 }
-    );
+    return { error: error.message };
   }
 }
