@@ -128,16 +128,16 @@ export async function PATCH(request) {
             );
         }
 
-        // Preparar la consulta de actualización
+       
         const updateQuery = like
-            ? { $inc: { likes: 1 }, $addToSet: { likedBy: likeUser } }
-            : { $inc: { likes: -1 }, $pull: { likedBy: likeUser } };
+            ? { $inc: { likes: +1 }, $addToSet: { likedBy: likeUser } } // Agregar el like
+            : { $inc: { likes: -1 }, $pull: { likedBy: likeUser } }; // Eliminar el like
 
-        // Ejecutar la actualización en la base de datos
         const result = await collection.updateOne(
-            { _id: objectId }, // Usar ObjectId para buscar
+            { _id: songId },
             updateQuery
         );
+
 
         // Verificar si la canción fue encontrada
         if (result.matchedCount === 0) {
