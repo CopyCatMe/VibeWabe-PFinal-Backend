@@ -73,23 +73,25 @@ export async function GET(request, { params }) {
     let songs = [];
 
     const { database } = await connectToDatabase();
-    const collection = database.collection(process.env.MONGODB_COLLECTION_SONGS);    
+    const collection = database.collection(process.env.MONGODB_COLLECTION_SONGS);
 
     if (!buscador || buscador.trim() === "") { // Verificamos si es vacío o espacios en blanco
         songs = await collection.find().sort({ created_at: -1 }).toArray();
     } else {
         songs = await collection.find({
             $or: [
-                { songName: { $regex: new RegExp(buscador, "i") } }, 
+                { songName: { $regex: new RegExp(buscador, "i") } },
                 { userName: { $regex: new RegExp(buscador, "i") } }
             ]
         }).sort({ created_at: -1 }).toArray();
     }
 
     console.log(songs)
-    
+
     return Response.json(songs);
 }
+
+import { ObjectId } from "mongodb";  // Asegúrate de importar ObjectId
 
 export async function PATCH(request) {
     try {
@@ -109,6 +111,7 @@ export async function PATCH(request) {
         const body = await request.json();
         const { songId, like, likeUser } = body;
 
+        // Validación de datos
         if (!songId || like === undefined || !likeUser) {
             return new Response(
                 JSON.stringify({ message: "Datos incompletos" }),
@@ -116,16 +119,27 @@ export async function PATCH(request) {
             );
         }
 
-        // Actualizar la canción
+        // Asegúrate de que el songId sea un ObjectId válido
+        const objectId = ObjectId.isValid(songId) ? new ObjectId(songId) : null;
+        if (!objectId) {
+            return new Response(
+                JSON.stringify({ message: "ID de canción no válido" }),
+                { status: 400, headers: { "Content-Type": "application/json" } }
+            );
+        }
+
+        // Preparar la consulta de actualización
         const updateQuery = like
-            ? { $inc: { likes: +1 }, $addToSet: { likedBy: likeUser } }
+            ? { $inc: { likes: 1 }, $addToSet: { likedBy: likeUser } }
             : { $inc: { likes: -1 }, $pull: { likedBy: likeUser } };
 
+        // Ejecutar la actualización en la base de datos
         const result = await collection.updateOne(
-            { _id: songId },
+            { _id: objectId }, // Usar ObjectId para buscar
             updateQuery
         );
 
+        // Verificar si la canción fue encontrada
         if (result.matchedCount === 0) {
             return new Response(
                 JSON.stringify({ message: "Canción no encontrada" }),
@@ -133,6 +147,7 @@ export async function PATCH(request) {
             );
         }
 
+        // Responder con éxito
         return new Response(
             JSON.stringify({ message: like ? "Like añadido correctamente" : "Like eliminado correctamente" }),
             { status: 200, headers: { "Content-Type": "application/json" } }
@@ -146,5 +161,3 @@ export async function PATCH(request) {
         );
     }
 }
-
-
