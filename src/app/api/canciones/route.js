@@ -131,15 +131,16 @@ export async function PATCH(request) {
             );
         }
 
-       
+
         const updateQuery = like
             ? { $inc: { likes: +1 }, $addToSet: { likedBy: likeUser } } // Agregar el like
             : { $inc: { likes: -1 }, $pull: { likedBy: likeUser } }; // Eliminar el like
 
         const result = await collection.updateOne(
-            { _id: songId },
+            { _id: objectId }, // Aquí es donde debe ir el ObjectId
             updateQuery
         );
+
 
 
         // Verificar si la canción fue encontrada
