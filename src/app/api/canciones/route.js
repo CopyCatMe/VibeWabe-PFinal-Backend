@@ -91,4 +91,60 @@ export async function GET(request, { params }) {
     return Response.json(songs);
 }
 
+export async function PATCH(request) {
+    try {
+        // Verificar la clave de API
+        const keyHeader = request.headers.get("x-api-key");
+        if (!keyHeader || keyHeader !== process.env.CLIENT_API_KEY) {
+            return new Response(
+                JSON.stringify({ message: "No tienes permiso para acceder a este recurso" }),
+                { status: 401, headers: { "Content-Type": "application/json" } }
+            );
+        }
+
+        const { database } = await connectToDatabase();
+        const collection = database.collection(process.env.MONGODB_COLLECTION_SONGS);
+
+        // Obtener los datos desde la solicitud
+        const body = await request.json();
+        const { songId, like, likeUser } = body;
+
+        if (!songId || like === undefined || !likeUser) {
+            return new Response(
+                JSON.stringify({ message: "Datos incompletos" }),
+                { status: 400, headers: { "Content-Type": "application/json" } }
+            );
+        }
+
+        // Actualizar la canción
+        const updateQuery = like
+            ? { $inc: { likes: +1 }, $addToSet: { likedBy: likeUser } }
+            : { $inc: { likes: -1 }, $pull: { likedBy: likeUser } };
+
+        const result = await collection.updateOne(
+            { _id: songId },
+            updateQuery
+        );
+
+        if (result.matchedCount === 0) {
+            return new Response(
+                JSON.stringify({ message: "Canción no encontrada" }),
+                { status: 404, headers: { "Content-Type": "application/json" } }
+            );
+        }
+
+        return new Response(
+            JSON.stringify({ message: like ? "Like añadido correctamente" : "Like eliminado correctamente" }),
+            { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+
+    } catch (error) {
+        console.error("Error en el servidor:", error);
+        return new Response(
+            JSON.stringify({ message: "Hubo un error en el servidor" }),
+            { status: 500, headers: { "Content-Type": "application/json" } }
+        );
+    }
+}
+
 
