@@ -165,3 +165,67 @@ export async function PATCH(request) {
         );
     }
 }
+
+export async function DELETE(request) {
+    try {
+        // Verificar la clave de API
+        const keyHeader = request.headers.get("x-api-key");
+        if (!keyHeader || keyHeader !== process.env.CLIENT_API_KEY) {
+            return new Response(
+                JSON.stringify({ message: "No tienes permiso para acceder a este recurso" }),
+                { status: 401, headers: { "Content-Type": "application/json" } }
+            );
+        }
+
+        const { database } = await connectToDatabase();
+        const collection = database.collection(process.env.MONGODB_COLLECTION_SONGS);
+
+        // Obtener los datos desde la solicitud
+        const body = await request.json();
+        const { songId } = body;
+
+        // Log the request body for debugging purposes
+        console.debug("Request Body:", body);
+
+        // Validación de datos
+        if (!songId) {
+            return new Response(
+                JSON.stringify({ message: "Datos incompletos" }),
+                { status: 400, headers: { "Content-Type": "application/json" } }
+            );
+        }
+
+        // Asegúrate de que el songId sea un ObjectId válido
+        const objectId = ObjectId.isValid(songId) ? new ObjectId(songId) : null;
+        if (!objectId) {
+            return new Response(
+                JSON.stringify({ message: "ID de canción no válido" }),
+                { status: 400, headers: { "Content-Type": "application/json" } }
+            );
+        }
+
+        // Eliminar la canción
+        const result = await collection.deleteOne({ _id: objectId });
+
+        // Verificar si la canción fue encontrada y eliminada
+        if (result.deletedCount === 0) {
+            return new Response(
+                JSON.stringify({ message: "Canción no encontrada" }),
+                { status: 404, headers: { "Content-Type": "application/json" } }
+            );
+        }
+
+        // Responder con éxito
+        return new Response(
+            JSON.stringify({ message: "Canción eliminada correctamente" }),
+            { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+
+    } catch (error) {
+        console.error("Error en el servidor:", error);
+        return new Response(
+            JSON.stringify({ message: "Hubo un error en el servidor" }),
+            { status: 500, headers: { "Content-Type": "application/json" } }
+        );
+    }
+}
