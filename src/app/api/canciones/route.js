@@ -1,4 +1,6 @@
 import { connectToDatabase } from "@/lib/mongodb";
+import { ObjectId } from "mongodb";
+
 
 /**
  * Verificar si se ha proporcionado una clave de API válida
@@ -91,7 +93,6 @@ export async function GET(request, { params }) {
     return Response.json(songs);
 }
 
-import { ObjectId } from "mongodb";  // Asegúrate de importar ObjectId
 
 export async function PATCH(request) {
     try {
@@ -110,6 +111,8 @@ export async function PATCH(request) {
         // Obtener los datos desde la solicitud
         const body = await request.json();
         const { songId, like, likeUser } = body;
+        // Log the request body for debugging purposes
+        console.debug("Request Body:", body);
 
         // Validación de datos
         if (!songId || like === undefined || !likeUser) {
